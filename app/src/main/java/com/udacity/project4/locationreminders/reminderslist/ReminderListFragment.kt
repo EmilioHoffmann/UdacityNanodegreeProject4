@@ -2,8 +2,11 @@ package com.udacity.project4.locationreminders.reminderslist
 
 import android.os.Bundle
 import android.view.*
-import androidx.databinding.DataBindingUtil
+import androidx.fragment.app.activityViewModels
+import androidx.navigation.fragment.findNavController
+import com.firebase.ui.auth.AuthUI
 import com.udacity.project4.R
+import com.udacity.project4.authentication.AuthenticationViewModel
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.base.NavigationCommand
 import com.udacity.project4.databinding.FragmentRemindersBinding
@@ -15,25 +18,27 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 class ReminderListFragment : BaseFragment() {
     // use Koin to retrieve the ViewModel instance
     override val _viewModel: RemindersListViewModel by viewModel()
-    private lateinit var binding: FragmentRemindersBinding
+    private val authenticationViewModel: AuthenticationViewModel by activityViewModels()
+
+    private var _binding: FragmentRemindersBinding? = null
+    private val binding
+        get() = _binding!!
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        binding =
-            DataBindingUtil.inflate(
-                inflater,
-                R.layout.fragment_reminders, container, false
-            )
+    ): View {
+        _binding = FragmentRemindersBinding.inflate(layoutInflater)
         binding.viewModel = _viewModel
+        binding.lifecycleOwner = viewLifecycleOwner
 
         setHasOptionsMenu(true)
         setDisplayHomeAsUpEnabled(false)
         setTitle(getString(R.string.app_name))
 
         binding.refreshLayout.setOnRefreshListener { _viewModel.loadReminders() }
-
+        setObservers()
         return binding.root
     }
 
@@ -50,6 +55,14 @@ class ReminderListFragment : BaseFragment() {
         super.onResume()
         // load the reminders list on the ui
         _viewModel.loadReminders()
+    }
+
+    private fun setObservers() {
+        authenticationViewModel.authenticationState.observe(viewLifecycleOwner) { authenticationState ->
+            if (authenticationState == AuthenticationViewModel.AuthenticationState.UNAUTHENTICATED) {
+                findNavController().popBackStack(R.id.authenticationFragment, true)
+            }
+        }
     }
 
     private fun navigateToAddReminder() {
@@ -72,7 +85,7 @@ class ReminderListFragment : BaseFragment() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.logout -> {
-//                TODO: add the logout implementation
+                AuthUI.getInstance().signOut(requireContext())
             }
         }
         return super.onOptionsItemSelected(item)
