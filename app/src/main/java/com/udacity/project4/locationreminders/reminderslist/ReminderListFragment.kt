@@ -53,7 +53,6 @@ class ReminderListFragment : BaseFragment() {
 
     override fun onResume() {
         super.onResume()
-        // load the reminders list on the ui
         _viewModel.loadReminders()
     }
 
@@ -62,6 +61,10 @@ class ReminderListFragment : BaseFragment() {
             if (authenticationState == AuthenticationViewModel.AuthenticationState.UNAUTHENTICATED) {
                 findNavController().popBackStack(R.id.authenticationFragment, true)
             }
+        }
+
+        _viewModel.showLoading.observe(viewLifecycleOwner) {
+            binding.refreshLayout.isRefreshing = it
         }
     }
 
