@@ -10,24 +10,83 @@
             type="com.udacity.project4.locationreminders.reminderslist.ReminderDataItem" />
     </data>
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:layout_margin="@dimen/default_margin"
         android:gravity="center"
-        android:orientation="vertical"
         tools:context=".locationreminders.ReminderDescriptionActivity">
-        <!--TODO: add the design of the reminder details-->
 
         <TextView
-            android:layout_width="match_parent"
+            android:id="@+id/titleLabel"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:gravity="center"
-            android:text="Reminder Details"
+            android:text="@string/title"
             android:textSize="@dimen/text_size_large"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="@id/titleValue"
             app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@id/titleValue" />
+
+        <TextView
+            android:id="@+id/titleValue"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@{reminderDataItem.title}"
+            android:textSize="@dimen/text_size_large"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/titleLabel"
             app:layout_constraintTop_toTopOf="parent" />
 
-    </LinearLayout>
+        <TextView
+            android:id="@+id/descriptionLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/description"
+            android:textSize="@dimen/text_size_large"
+            app:layout_constraintBottom_toBottomOf="@id/descriptionValue"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@id/descriptionValue" />
+
+        <TextView
+            android:id="@+id/descriptionValue"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@{reminderDataItem.description}"
+            android:textSize="@dimen/text_size_large"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/descriptionLabel"
+            app:layout_constraintTop_toBottomOf="@id/titleValue" />
+
+        <TextView
+            android:id="@+id/locationLabel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="@string/location"
+            android:textSize="@dimen/text_size_large"
+            app:layout_constraintBottom_toBottomOf="@id/locationValue"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="@id/locationValue" />
+
+        <TextView
+            android:id="@+id/locationValue"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@{reminderDataItem.location}"
+            android:textSize="@dimen/text_size_large"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/locationLabel"
+            app:layout_constraintTop_toBottomOf="@id/descriptionValue" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/closeButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="32dp"
+            android:text="@string/ok"
+            android:textColor="@color/black"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </layout>
