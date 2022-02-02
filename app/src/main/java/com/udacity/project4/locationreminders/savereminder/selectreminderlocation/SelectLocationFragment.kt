@@ -10,7 +10,6 @@ import android.view.*
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
-import androidx.navigation.fragment.findNavController
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -23,6 +22,7 @@ import com.google.android.gms.maps.model.PointOfInterest
 import com.google.android.material.snackbar.Snackbar
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
+import com.udacity.project4.base.NavigationCommand
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.Constants.REQUEST_LOCATION_PERMISSION
@@ -57,18 +57,29 @@ class SelectLocationFragment : BaseFragment() {
             LocationServices.getFusedLocationProviderClient(requireActivity())
 
         binding.mapLocationConfirmButton.setOnClickListener {
-            onLocationSelected()
+            if (selectedPOI != null) {
+                onPOISelected()
+            } else {
+                onLocationSelected()
+            }
         }
 
         return binding.root
     }
 
-    private fun onLocationSelected() {
+    private fun onPOISelected() {
         _viewModel.selectedPOI.postValue(selectedPOI)
         _viewModel.reminderSelectedLocationStr.postValue(selectedPOI?.name)
         _viewModel.latitude.postValue(selectedPOI?.latLng?.latitude)
         _viewModel.longitude.postValue(selectedPOI?.latLng?.longitude)
-        findNavController().navigateUp()
+        _viewModel.navigationCommand.postValue(NavigationCommand.Back)
+    }
+
+    private fun onLocationSelected() {
+        _viewModel.latitude.postValue(latLngSelected?.latitude)
+        _viewModel.longitude.postValue(latLngSelected?.longitude)
+        _viewModel.reminderSelectedLocationStr.postValue(latLngSelected.toString())
+        _viewModel.navigationCommand.postValue(NavigationCommand.Back)
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -96,6 +107,7 @@ class SelectLocationFragment : BaseFragment() {
     }
 
     private var selectedPOI: PointOfInterest? = null
+    private var latLngSelected: LatLng? = null
 
     private fun prepareMapFragment() {
         val mapFragment =
@@ -104,7 +116,11 @@ class SelectLocationFragment : BaseFragment() {
             map = googleMap
             setMapStyle()
             map.setOnPoiClickListener {
-                addMarker(it)
+                addPOIMarker(it)
+            }
+
+            map.setOnMapClickListener {
+                addLocationMarker(it)
             }
 
             enableMapLocation()
@@ -117,12 +133,22 @@ class SelectLocationFragment : BaseFragment() {
         ).show()
     }
 
-    private fun addMarker(pointOfInterest: PointOfInterest) {
+    private fun addPOIMarker(pointOfInterest: PointOfInterest) {
         selectedPOI = pointOfInterest
-        map.clear()
-        map.addMarker(MarkerOptions().position(pointOfInterest.latLng))
-
+        addMapMarker(pointOfInterest.latLng)
         binding.mapLocationConfirmButton.fadeIn()
+    }
+
+    private fun addLocationMarker(latLng: LatLng) {
+        selectedPOI = null
+        latLngSelected = latLng
+        addMapMarker(latLng)
+        binding.mapLocationConfirmButton.fadeIn()
+    }
+
+    private fun addMapMarker(latLng: LatLng) {
+        map.clear()
+        map.addMarker(MarkerOptions().position(latLng))
     }
 
     private fun setMapStyle() {
