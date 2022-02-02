@@ -33,9 +33,13 @@
     <string name="welcome">Welcome</string>
     <string name="err_enter_title">Please enter title</string>
     <string name="err_select_location">Please select location</string>
-    <string name="touch_map_marker_hint">Touch the map to add your reminder location</string>
+    <string name="touch_map_marker_hint">Touch a point of interest to add your reminder location</string>
     <string name="ok">OK</string>
     <string name="confirm_location_button">Confirm location</string>
+    <string name="permissions_activity_title">Attention!</string>
+    <string name="permissions_activity_description">In order for the app to work properly we need to ask for location permissions.</string>
+    <string name="permissions_activity_denied">We are sorry, but the app won\'t work without those permissions. Please allow the location permissions on the app configurations</string>
+    <string name="permissions_activity_button">Check permissions</string>
 
     <!-- Error strings -->
     <string name="geofence_unknown_error">Unknown error: the Geofence service is not available now.</string>
