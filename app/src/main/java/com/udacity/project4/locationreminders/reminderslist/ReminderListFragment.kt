@@ -1,15 +1,11 @@
 package com.udacity.project4.locationreminders.reminderslist
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.*
-import androidx.core.app.ActivityCompat
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
 import com.firebase.ui.auth.AuthUI
@@ -23,6 +19,7 @@ import com.udacity.project4.authentication.AuthenticationViewModel
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.base.NavigationCommand
 import com.udacity.project4.databinding.FragmentRemindersBinding
+import com.udacity.project4.locationreminders.ReminderDescriptionActivity
 import com.udacity.project4.locationreminders.geofence.GeofenceBroadcastReceiver
 import com.udacity.project4.utils.Constants.ACTION_GEOFENCE_EVENT
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
@@ -145,30 +142,6 @@ class ReminderListFragment : BaseFragment() {
         }
     }
 
-    private fun foregroundAndBackgroundLocationPermissionApproved(): Boolean {
-        val foreGroundLocationApproved =
-            PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION
-            )
-
-        val coarseLocationApproved =
-            PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            )
-
-        val backGroundPermissionApproved = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_BACKGROUND_LOCATION
-            )
-        } else {
-            true
-        }
-        return foreGroundLocationApproved && coarseLocationApproved && backGroundPermissionApproved
-    }
-
     private fun navigateToAddReminder() {
         // use the navigationCommand live data to navigate between the fragments
         _viewModel.navigationCommand.postValue(
@@ -180,9 +153,9 @@ class ReminderListFragment : BaseFragment() {
 
     private fun setupRecyclerView() {
         val adapter = RemindersListAdapter {
+            val reminderDetailIntent = ReminderDescriptionActivity.newIntent(requireContext(), it)
+            startActivity(reminderDetailIntent)
         }
-
-//        setup the recycler view using the extension function
         binding.reminderssRecyclerView.setup(adapter)
     }
 

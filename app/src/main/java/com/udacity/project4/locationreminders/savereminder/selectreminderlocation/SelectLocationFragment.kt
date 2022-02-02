@@ -53,9 +53,6 @@ class SelectLocationFragment : BaseFragment() {
 
         fusedLocationProviderClient =
             LocationServices.getFusedLocationProviderClient(requireActivity())
-//        TODO: zoom to the user location after taking his permission
-//        TODO: add style to the map
-//        TODO: put a marker to location that the user selected
 
         binding.mapLocationConfirmButton.setOnClickListener {
             onLocationSelected()
