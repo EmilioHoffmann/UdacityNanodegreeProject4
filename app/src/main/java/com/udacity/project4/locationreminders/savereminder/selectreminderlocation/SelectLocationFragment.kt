@@ -1,10 +1,14 @@
 package com.udacity.project4.locationreminders.savereminder.selectreminderlocation
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.location.Location
 import android.os.Bundle
 import android.util.Log
 import android.view.*
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import androidx.navigation.fragment.findNavController
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -21,14 +25,12 @@ import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
+import com.udacity.project4.utils.Constants.REQUEST_LOCATION_PERMISSION
 import com.udacity.project4.utils.fadeIn
-import com.udacity.project4.utils.hasPermissions
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import org.koin.android.ext.android.inject
 
 class SelectLocationFragment : BaseFragment() {
-
-    // Use Koin to get the view model of the SaveReminder
     override val _viewModel: SaveReminderViewModel by inject()
     private lateinit var binding: FragmentSelectLocationBinding
     private lateinit var map: GoogleMap
@@ -63,6 +65,9 @@ class SelectLocationFragment : BaseFragment() {
 
     private fun onLocationSelected() {
         _viewModel.selectedPOI.postValue(selectedPOI)
+        _viewModel.reminderSelectedLocationStr.postValue(selectedPOI?.name)
+        _viewModel.latitude.postValue(selectedPOI?.latLng?.latitude)
+        _viewModel.longitude.postValue(selectedPOI?.latLng?.longitude)
         findNavController().navigateUp()
     }
 
@@ -138,28 +143,67 @@ class SelectLocationFragment : BaseFragment() {
     }
 
     private fun enableMapLocation() {
-        if (requireActivity().hasPermissions()) {
-            map.uiSettings.isMyLocationButtonEnabled = true
-            map.isMyLocationEnabled = true
+        if (hasLocationPermission()) {
+            updateMapUI()
             getDeviceLocation()
         } else {
-            map.uiSettings.isMyLocationButtonEnabled = false
-            map.isMyLocationEnabled = false
+            ActivityCompat.requestPermissions(
+                requireActivity(),
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                REQUEST_LOCATION_PERMISSION
+            )
         }
+    }
+
+    private fun updateMapUI() {
+        try {
+            if (hasLocationPermission()) {
+                map.isMyLocationEnabled = true
+                map.uiSettings?.isMyLocationButtonEnabled = true
+                map.uiSettings?.isMapToolbarEnabled = false
+            } else {
+                map.isMyLocationEnabled = false
+                map.uiSettings?.isMyLocationButtonEnabled = false
+                map.uiSettings?.isMapToolbarEnabled = false
+                lastKnownLocation = null
+            }
+        } catch (e: SecurityException) {
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        if (requestCode == REQUEST_LOCATION_PERMISSION) {
+            if (grantResults.isNotEmpty() && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
+                enableMapLocation()
+            }
+        }
+    }
+
+    private fun hasLocationPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            requireContext(),
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun getDeviceLocation() {
         try {
-            val locationResult = fusedLocationProviderClient.lastLocation
-            locationResult.addOnCompleteListener(requireActivity()) { task ->
-                if (task.isSuccessful) {
-                    task.result?.let {
-                        lastKnownLocation = it
-                        moveMapTo(LatLng(it.latitude, it.longitude))
+            if (hasLocationPermission()) {
+                val locationResult = fusedLocationProviderClient.lastLocation
+                locationResult.addOnCompleteListener(requireActivity()) { task ->
+                    if (task.isSuccessful) {
+                        task.result?.let {
+                            lastKnownLocation = it
+                            moveMapTo(LatLng(it.latitude, it.longitude))
+                        }
+                    } else {
+                        moveMapTo(LatLng(-29.7201263, -53.7744837))
+                        map.uiSettings?.isMyLocationButtonEnabled = false
                     }
-                } else {
-                    moveMapTo(LatLng(-29.7201263, -53.7744837))
-                    map.uiSettings?.isMyLocationButtonEnabled = false
                 }
             }
         } catch (e: SecurityException) {
@@ -171,7 +215,7 @@ class SelectLocationFragment : BaseFragment() {
         map.moveCamera(
             CameraUpdateFactory.newLatLngZoom(
                 latLng,
-                14f
+                16f
             )
         )
     }
