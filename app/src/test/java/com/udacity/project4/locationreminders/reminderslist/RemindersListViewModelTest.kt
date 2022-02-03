@@ -107,4 +107,29 @@ class RemindersListViewModelTest {
             `is`("Data error")
         )
     }
+
+    @Test
+    fun loadReminders_loadingIsTrue() {
+        mainCoroutineRule.pauseDispatcher()
+        viewModel.loadReminders()
+
+        assertThat(viewModel.showLoading.getOrAwaitValue(), `is`(true))
+        mainCoroutineRule.resumeDispatcher()
+
+        assertThat(viewModel.showLoading.getOrAwaitValue(), `is`(false))
+    }
+
+    @Test
+    fun loadReminders_loadingIsTrue_ResultIsError() {
+        dataSource.returnError = true
+        mainCoroutineRule.pauseDispatcher()
+        viewModel.loadReminders()
+
+        assertThat(viewModel.showLoading.getOrAwaitValue(), `is`(true))
+
+        mainCoroutineRule.resumeDispatcher()
+
+        assertThat(viewModel.showSnackBar.getOrAwaitValue(), `is`("Data error"))
+        assertThat(viewModel.showLoading.getOrAwaitValue(), `is`(false))
+    }
 }

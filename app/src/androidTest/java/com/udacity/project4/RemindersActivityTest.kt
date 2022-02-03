@@ -1,14 +1,16 @@
 package com.udacity.project4
 
 import android.app.Application
-import androidx.test.core.app.ActivityScenario
+import android.os.Build
 import androidx.test.core.app.ApplicationProvider.getApplicationContext
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.IdlingRegistry
 import androidx.test.espresso.action.ViewActions.*
 import androidx.test.espresso.assertion.ViewAssertions.doesNotExist
 import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.matcher.RootMatchers.withDecorView
 import androidx.test.espresso.matcher.ViewMatchers.*
+import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import com.udacity.project4.locationreminders.RemindersActivity
@@ -21,8 +23,10 @@ import com.udacity.project4.util.DataBindingIdlingResource
 import com.udacity.project4.util.monitorActivity
 import com.udacity.project4.utils.EspressoIdlingResource
 import kotlinx.coroutines.runBlocking
+import org.hamcrest.CoreMatchers.not
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -43,13 +47,18 @@ class RemindersActivityTest :
     private val dataBindingIdlingResource = DataBindingIdlingResource()
     private lateinit var viewModel: SaveReminderViewModel
 
+    @get:Rule
+    var activityScenarioRule: ActivityScenarioRule<RemindersActivity> = ActivityScenarioRule(
+        RemindersActivity::class.java
+    )
+
     /**
      * As we use Koin as a Service Locator Library to develop our code, we'll also use Koin to test our code.
      * at this step we will initialize Koin related code to be able to use it in out testing.
      */
     @Before
     fun setup() {
-        stopKoin() // stop the original app koin
+        stopKoin()
         appContext = getApplicationContext()
         val myModule = module {
             viewModel {
@@ -92,7 +101,14 @@ class RemindersActivityTest :
 
     @Test
     fun addReminderFlow() {
-        val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+//        val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+        val activityScenario = activityScenarioRule.scenario
+
+        var activity: RemindersActivity? = null
+        activityScenario.onActivity {
+            activity = it
+        }
+
         dataBindingIdlingResource.monitorActivity(activityScenario)
 
         onView(withId(R.id.noDataTextView))
@@ -114,6 +130,10 @@ class RemindersActivityTest :
         onView(withText("Google Android Statues Square")).check(matches(isDisplayed()))
         onView(withId(R.id.reminderssRecyclerView)).check(matches(hasChildCount(1)))
 
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
+            onView(withText(R.string.reminder_saved)).inRoot(withDecorView(not(activity?.window?.decorView)))
+                .check(matches(isDisplayed()))
+        }
         onView(withText("Google Android Statues Square")).perform(click())
 
         onView(withText("Title:")).check(matches(isDisplayed()))
@@ -127,6 +147,80 @@ class RemindersActivityTest :
         onView(withId(R.id.closeButton)).perform(click())
 
         onView(withId(R.id.reminderssRecyclerView)).check(matches(isDisplayed()))
+
+        activityScenario.close()
+    }
+
+    @Test
+    fun addReminderEmptyTitle_ShouldShowErrorSnack() {
+//        val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+
+        val activityScenario = activityScenarioRule.scenario
+        dataBindingIdlingResource.monitorActivity(activityScenario)
+
+        onView(withId(R.id.noDataTextView))
+            .check(matches(isDisplayed()))
+        onView(withId(R.id.addReminderFAB)).check(matches(isDisplayed()))
+        onView(withId(R.id.addReminderFAB)).perform(click())
+
+        onView(isRoot()).perform(closeSoftKeyboard())
+
+        onView(withId(R.id.saveReminder)).perform(click())
+
+        onView(withText(R.string.err_enter_title)).check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
+
+        activityScenario.close()
+    }
+
+    @Test
+    fun addReminderEmptyLocation_ShouldShowErrorSnack() {
+//        val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+
+        val activityScenario = activityScenarioRule.scenario
+        dataBindingIdlingResource.monitorActivity(activityScenario)
+
+        onView(withId(R.id.noDataTextView))
+            .check(matches(isDisplayed()))
+        onView(withId(R.id.addReminderFAB)).check(matches(isDisplayed()))
+        onView(withId(R.id.addReminderFAB)).perform(click())
+
+        onView(withId(R.id.reminderTitle)).perform(replaceText("Title1"))
+        onView(withId(R.id.reminderDescription)).perform(replaceText("Description1"))
+        onView(isRoot()).perform(closeSoftKeyboard())
+
+        onView(withId(R.id.saveReminder)).perform(click())
+
+        onView(withText(R.string.err_select_location)).check(
+            matches(
+                withEffectiveVisibility(
+                    Visibility.VISIBLE
+                )
+            )
+        )
+
+        activityScenario.close()
+    }
+
+    @Test
+    fun snackBarHint_WhenEnteringMap_SnackBarHintShouldAppear() {
+//        val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
+
+        val activityScenario = activityScenarioRule.scenario
+        dataBindingIdlingResource.monitorActivity(activityScenario)
+
+        onView(withId(R.id.noDataTextView))
+            .check(matches(isDisplayed()))
+        onView(withId(R.id.addReminderFAB)).check(matches(isDisplayed()))
+        onView(withId(R.id.addReminderFAB)).perform(click())
+
+        onView(withId(R.id.selectLocation)).perform(click())
+        onView(withText(R.string.touch_map_marker_hint)).check(
+            matches(
+                withEffectiveVisibility(
+                    Visibility.VISIBLE
+                )
+            )
+        )
 
         activityScenario.close()
     }
