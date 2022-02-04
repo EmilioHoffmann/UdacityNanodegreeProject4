@@ -1,13 +1,18 @@
 package com.udacity.project4.locationreminders.savereminder.selectreminderlocation
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.location.Location
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.view.*
-import androidx.core.app.ActivityCompat
+import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -20,12 +25,12 @@ import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.PointOfInterest
 import com.google.android.material.snackbar.Snackbar
+import com.udacity.project4.BuildConfig
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.base.NavigationCommand
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
-import com.udacity.project4.utils.Constants.REQUEST_LOCATION_PERMISSION
 import com.udacity.project4.utils.fadeIn
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import org.koin.android.ext.android.inject
@@ -38,6 +43,8 @@ class SelectLocationFragment : BaseFragment() {
     private var lastKnownLocation: Location? = null
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
 
+    private lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -45,6 +52,8 @@ class SelectLocationFragment : BaseFragment() {
     ): View {
         binding =
             DataBindingUtil.inflate(inflater, R.layout.fragment_select_location, container, false)
+
+        setRequestPermissionLauncher()
 
         binding.viewModel = _viewModel
         binding.lifecycleOwner = this
@@ -65,6 +74,25 @@ class SelectLocationFragment : BaseFragment() {
         }
 
         return binding.root
+    }
+
+    private fun setRequestPermissionLauncher() {
+        requestPermissionLauncher =
+            registerForActivityResult(
+                ActivityResultContracts.RequestPermission()
+            ) { isGranted: Boolean ->
+                if (isGranted) {
+                    updateMapUI()
+                } else if (!shouldShowRequestPermissionRationale(Manifest.permission.ACCESS_FINE_LOCATION)) {
+                    Toast.makeText(
+                        context,
+                        R.string.permission_denied_explanation,
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    showLocationRequestSnackBar()
+                }
+            }
     }
 
     private fun onPOISelected() {
@@ -123,14 +151,8 @@ class SelectLocationFragment : BaseFragment() {
                 addLocationMarker(it)
             }
 
-            enableMapLocation()
+            updateMapUI()
         }
-
-        Snackbar.make(
-            requireActivity().findViewById(android.R.id.content),
-            getString(R.string.touch_map_marker_hint),
-            Snackbar.LENGTH_LONG
-        ).show()
     }
 
     private fun addPOIMarker(pointOfInterest: PointOfInterest) {
@@ -168,45 +190,39 @@ class SelectLocationFragment : BaseFragment() {
         }
     }
 
-    private fun enableMapLocation() {
-        if (hasLocationPermission()) {
-            updateMapUI()
-            getDeviceLocation()
-        } else {
-            ActivityCompat.requestPermissions(
-                requireActivity(),
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                REQUEST_LOCATION_PERMISSION
-            )
-        }
-    }
-
     private fun updateMapUI() {
         try {
             if (hasLocationPermission()) {
                 map.isMyLocationEnabled = true
-                map.uiSettings?.isMyLocationButtonEnabled = true
-                map.uiSettings?.isMapToolbarEnabled = false
+                map.uiSettings.isMyLocationButtonEnabled = true
+                map.uiSettings.isMapToolbarEnabled = false
+                getDeviceLocation()
             } else {
                 map.isMyLocationEnabled = false
-                map.uiSettings?.isMyLocationButtonEnabled = false
-                map.uiSettings?.isMapToolbarEnabled = false
+                map.uiSettings.isMyLocationButtonEnabled = false
+                map.uiSettings.isMapToolbarEnabled = false
                 lastKnownLocation = null
+                requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
             }
         } catch (e: SecurityException) {
         }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
-    ) {
-        if (requestCode == REQUEST_LOCATION_PERMISSION) {
-            if (grantResults.isNotEmpty() && (grantResults[0] == PackageManager.PERMISSION_GRANTED)) {
-                enableMapLocation()
-            }
-        }
+    private fun showLocationRequestSnackBar() {
+        Snackbar.make(
+            requireView(),
+            R.string.permission_denied_explanation,
+            Snackbar.LENGTH_LONG
+        )
+            .setAction(R.string.settings) {
+                startActivity(
+                    Intent().apply {
+                        action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                        data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                )
+            }.show()
     }
 
     private fun hasLocationPermission(): Boolean {
@@ -228,7 +244,7 @@ class SelectLocationFragment : BaseFragment() {
                         }
                     } else {
                         moveMapTo(LatLng(-29.7201263, -53.7744837))
-                        map.uiSettings?.isMyLocationButtonEnabled = false
+                        map.uiSettings.isMyLocationButtonEnabled = false
                     }
                 }
             }
