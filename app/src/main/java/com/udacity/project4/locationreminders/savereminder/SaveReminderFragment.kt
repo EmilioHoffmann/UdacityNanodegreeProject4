@@ -52,6 +52,8 @@ class SaveReminderFragment : BaseFragment() {
         PendingIntent.getBroadcast(requireContext(), 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
     }
 
+    private lateinit var enableLocationRequestLauncher: ActivityResultLauncher<IntentSenderRequest>
+
     companion object {
         const val TAG = "SaveReminderFragment"
     }
@@ -65,10 +67,20 @@ class SaveReminderFragment : BaseFragment() {
             DataBindingUtil.inflate(inflater, R.layout.fragment_save_reminder, container, false)
 
         setDisplayHomeAsUpEnabled(true)
-
         binding.viewModel = _viewModel
 
         return binding.root
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableLocationRequestLauncher = registerForActivityResult(
+            ActivityResultContracts.StartIntentSenderForResult()
+        ) { result ->
+            if (result.resultCode == RESULT_OK) {
+                checkDeviceLocationSettingsAndStartGeofence()
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -232,13 +244,9 @@ class SaveReminderFragment : BaseFragment() {
         locationSettingsResponseTask.addOnFailureListener { exception ->
             if (exception is ResolvableApiException && resolve) {
                 try {
-                    registerForActivityResult(
-                        ActivityResultContracts.StartIntentSenderForResult()
-                    ) { result ->
-                        if (result.resultCode == RESULT_OK) {
-                            checkDeviceLocationSettingsAndStartGeofence()
-                        }
-                    }.launch(IntentSenderRequest.Builder(exception.resolution).build())
+                    enableLocationRequestLauncher.launch(
+                        IntentSenderRequest.Builder(exception.resolution).build()
+                    )
                 } catch (sendEx: IntentSender.SendIntentException) {
                     Log.d(
                         TAG,
